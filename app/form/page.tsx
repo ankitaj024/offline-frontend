@@ -2,7 +2,14 @@
 import { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { addSubmitted, getAllSubmitted } from '../../lib/idb';
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000/api';
+import { queueForm, trySyncQueued } from '../../lib/sync';
+const RAW_BASE = 'https://fd3de600e774.ngrok-free.app';
+const API_BASE = (() => {
+  const base = RAW_BASE.replace(/\/+$/, '');
+  if (base.endsWith('/api')) return base;
+  if (/\/api(\b|\/)/.test(base)) return base;
+  return base + '/api';
+})();
 
 export default function FormPage() {
   const [name, setName] = useState('');
@@ -10,12 +17,39 @@ export default function FormPage() {
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState<string>('');
   const [submittedList, setSubmittedList] = useState<any[]>([]);
-
+console.log(API_BASE)
   useEffect(() => {
-    (async () => {
-      const items = await getAllSubmitted();
-      setSubmittedList(items.sort((a,b)=> new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-    })();
+    async function load() {
+      if (typeof window === 'undefined') return;
+      if (navigator.onLine) {
+        try {
+          console.log("fdfsdfssdf")
+          console.log(API_BASE)
+          const res = await fetch(`https://fd3de600e774.ngrok-free.app/api/forms`);
+          if (res.ok) {
+            const items = await res.json();
+            setSubmittedList(items);
+            // also mirror into local submitted store for offline view
+            for (const it of items) {
+              await addSubmitted(it);
+            }
+          } else {
+            const items = await getAllSubmitted();
+            setSubmittedList(items.sort((a,b)=> new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+          }
+        } catch {
+          const items = await getAllSubmitted();
+          setSubmittedList(items.sort((a,b)=> new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+        }
+      } else {
+        const items = await getAllSubmitted();
+        setSubmittedList(items.sort((a,b)=> new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      }
+    }
+    load();
+    const onOnline = async () => { await trySyncQueued(); await load(); };
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -37,19 +71,21 @@ export default function FormPage() {
         });
         if (res.ok) {
           setStatus('Submitted online successfully');
+          await addSubmitted(payload);
         } else {
-          setStatus('Saved locally (server error)');
+          await queueForm(payload);
+          setStatus('Saved offline and queued (server error)');
         }
       } else {
-        setStatus('Saved locally (offline)');
+        await queueForm(payload);
+        setStatus('Saved offline and queued');
       }
-      await addSubmitted(payload);
       setSubmittedList((prev)=> [{...payload}, ...prev.filter(p=>p.clientId!==payload.clientId)]);
       setName(''); setEmail(''); setMessage('');
     } catch (err) {
-      setStatus('Saved locally (network error)');
-      await addSubmitted(payload);
+      await queueForm(payload);
       setSubmittedList((prev)=> [{...payload}, ...prev.filter(p=>p.clientId!==payload.clientId)]);
+      setStatus('Saved offline and queued (network error)');
     }
   }
 
