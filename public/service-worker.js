@@ -1,16 +1,25 @@
-const CACHE_NAME = 'offline-cache-v2';
+const CACHE_NAME = 'offline-cache-v3';
 const API_BASE = 'http://localhost:4000/api'; // adjust if backend URL differs
 const ASSETS = [
   '/',
-  '/form',
   '/manifest.webmanifest',
   '/styles.css'
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    for (const url of ASSETS) {
+      try {
+        const res = await fetch(url, { cache: 'reload' });
+        if (res.ok && res.type !== 'opaqueredirect') {
+          await cache.put(url, res.clone());
+        }
+      } catch (_) {
+        // skip missing/redirected assets
+      }
+    }
+  })());
   self.skipWaiting();
 });
 
