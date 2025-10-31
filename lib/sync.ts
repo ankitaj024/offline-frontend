@@ -26,10 +26,15 @@ export async function trySyncQueued() {
   if (!items.length) return;
   try {
     const res = await fetch(API_BASE + '/forms/sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items }),
-    });
+        method: 'POST',
+        mode: 'cors',
+        credentials: 'omit',
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ items }),
+      });
+      
     if (!res.ok) return;
     const data = await res.json();
     for (const r of data.results || []) {
