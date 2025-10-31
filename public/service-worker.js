@@ -1,5 +1,5 @@
 const CACHE_NAME = 'offline-cache-v4';
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = 'https://fd3de600e774.ngrok-free.app/api';
 const ASSETS = [
   '/',
   '/form',
