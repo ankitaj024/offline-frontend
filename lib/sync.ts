@@ -1,14 +1,7 @@
 import { addToQueue, getAllQueued, removeFromQueue } from './idb';
 import { addSubmitted } from './idb';
 
-const API_BASE = (() => {
-  if (typeof window !== 'undefined') {
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const origin = isLocal ? 'https://fd3de600e774.ngrok-free.app' : window.location.origin;
-    return origin.replace(/\/+$/, '') + '/api';
-  }
-  return 'https://fd3de600e774.ngrok-free.app/api';
-})();
+const API_BASE = 'https://fd3de600e774.ngrok-free.app/api';
 
 async function registerBackgroundSync() {
   if ('serviceWorker' in navigator && 'SyncManager' in window) {
