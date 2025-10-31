@@ -1,7 +1,8 @@
-const CACHE_NAME = 'offline-cache-v3';
-const API_BASE = 'http://localhost:4000/api'; // adjust if backend URL differs
+const CACHE_NAME = 'offline-cache-v4';
+const API_BASE = 'http://localhost:4000/api';
 const ASSETS = [
   '/',
+  '/form',
   '/manifest.webmanifest',
   '/styles.css'
 ];
@@ -38,7 +39,7 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
 
-  // Navigation fallback for offline: serve cached '/'
+  // Navigation fallback for offline: serve cached page (prefer exact path, else '/')
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
       try {
@@ -49,6 +50,10 @@ self.addEventListener('fetch', (event) => {
         cache.put(request, res.clone());
         return res;
       } catch {
+        const url = new URL(request.url);
+        // try cached path first
+        const cachedExact = await caches.match(url.pathname);
+        if (cachedExact) return cachedExact;
         const cachedHome = await caches.match('/');
         if (cachedHome) return cachedHome;
         return new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
@@ -58,6 +63,19 @@ self.addEventListener('fetch', (event) => {
   }
 
   const url = new URL(request.url);
+  // Next.js RSC/data fetches during navigation; provide offline fallback
+  if (url.origin === location.origin && url.search.includes('__nextDataReq')) {
+    event.respondWith((async () => {
+      try {
+        return await fetch(request);
+      } catch {
+        const cachedHome = await caches.match('/');
+        if (cachedHome) return cachedHome;
+        return new Response('Offline', { status: 503 });
+      }
+    })());
+    return;
+  }
   const isStatic = url.pathname.startsWith('/_next/static/') || url.pathname.startsWith('/icons/');
 
   if (isStatic) {
