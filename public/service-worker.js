@@ -1,7 +1,8 @@
-const CACHE_NAME = 'offline-cache-v1';
+const CACHE_NAME = 'offline-cache-v2';
 const API_BASE = 'http://localhost:4000/api'; // adjust if backend URL differs
 const ASSETS = [
   '/',
+  '/form',
   '/manifest.webmanifest',
   '/styles.css'
 ];
@@ -10,26 +11,71 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : undefined))))
   );
+  self.clients.claim();
+  // Enable navigation preload for faster responses when online
+  if (self.registration.navigationPreload) {
+    self.registration.navigationPreload.enable();
+  }
 });
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  // Network-first for pages and API; fallback to cache
-  if (request.method === 'GET') {
-    event.respondWith(
-      fetch(request).then((res) => {
-        const resClone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, resClone));
+  if (request.method !== 'GET') return;
+
+  // Navigation fallback for offline: serve cached '/'
+  if (request.mode === 'navigate') {
+    event.respondWith((async () => {
+      try {
+        // Use preload if available (Chrome)
+        const preload = await event.preloadResponse;
+        const res = preload || await fetch(request);
+        const cache = await caches.open(CACHE_NAME);
+        cache.put(request, res.clone());
         return res;
-      }).catch(() => caches.match(request))
-    );
+      } catch {
+        const cachedHome = await caches.match('/');
+        if (cachedHome) return cachedHome;
+        return new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
+      }
+    })());
+    return;
   }
+
+  const url = new URL(request.url);
+  const isStatic = url.pathname.startsWith('/_next/static/') || url.pathname.startsWith('/icons/');
+
+  if (isStatic) {
+    // Cache-first for Next static assets and icons
+    event.respondWith((async () => {
+      const cached = await caches.match(request);
+      if (cached) return cached;
+      try {
+        const res = await fetch(request);
+        const cache = await caches.open(CACHE_NAME);
+        cache.put(request, res.clone());
+        return res;
+      } catch {
+        return caches.match('/');
+      }
+    })());
+    return;
+  }
+
+  // Default GET: network-first with cache fallback
+  event.respondWith(
+    fetch(request).then((res) => {
+      const resClone = res.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(request, resClone));
+      return res;
+    }).catch(() => caches.match(request))
+  );
 });
 
 // Background Sync: send queued forms when connectivity returns
