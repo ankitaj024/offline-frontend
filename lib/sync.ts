@@ -1,7 +1,7 @@
 import { addToQueue, getAllQueued, removeFromQueue } from './idb';
 import { addSubmitted } from './idb';
 
-const API_BASE = 'https://fd3de600e774.ngrok-free.app/api';
+const API_BASE = 'https://rugby-alerts-bubble-dean.trycloudflare.com';
 
 async function registerBackgroundSync() {
   if ('serviceWorker' in navigator && 'SyncManager' in window) {

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { addSubmitted, getAllSubmitted } from '../../lib/idb';
 import { queueForm, trySyncQueued } from '../../lib/sync';
-const RAW_BASE = 'https://fd3de600e774.ngrok-free.app';
+const RAW_BASE = 'https://rugby-alerts-bubble-dean.trycloudflare.com';
 const API_BASE = (() => {
   const base = RAW_BASE.replace(/\/+$/, '');
   if (base.endsWith('/api')) return base;
@@ -25,7 +25,7 @@ console.log(API_BASE)
         try {
           console.log("fdfsdfssdf")
           console.log(API_BASE)
-          const res = await fetch(`https://fd3de600e774.ngrok-free.app/api/forms`);
+          const res = await fetch(`https://rugby-alerts-bubble-dean.trycloudflare.com/api/forms`);
           if (res.ok) {
             const items = await res.json();
             setSubmittedList(items);

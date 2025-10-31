@@ -1,5 +1,5 @@
 const CACHE_NAME = "offline-cache-v4";
-const API_BASE = "https://fd3de600e774.ngrok-free.app/api";
+const API_BASE = "https://rugby-alerts-bubble-dean.trycloudflare.com";
 const ASSETS = ["/", "/form", "/manifest.webmanifest", "/styles.css"];
 
 self.addEventListener("install", (event) => {
