@@ -1,5 +1,5 @@
 const CACHE_NAME = "offline-cache-v4";
-const API_BASE = "https://rugby-alerts-bubble-dean.trycloudflare.com";
+const API_BASE = "https://offline-backend-6hco.onrender.com";
 const ASSETS = ["/", "/form", "/manifest.webmanifest", "/styles.css"];
 
 self.addEventListener("install", (event) => {

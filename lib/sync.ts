@@ -1,7 +1,7 @@
 import { addToQueue, getAllQueued, removeFromQueue } from './idb';
 import { addSubmitted } from './idb';
 
-const API_BASE = 'https://rugby-alerts-bubble-dean.trycloudflare.com';
+const API_BASE = 'https://offline-backend-6hco.onrender.com';
 
 async function registerBackgroundSync() {
   if ('serviceWorker' in navigator && 'SyncManager' in window) {
